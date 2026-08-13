@@ -1,0 +1,27 @@
+name: Wingo 5-Min Auto Fetcher
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Har 5 minute me bot chalega
+  workflow_dispatch: # Manual test button ke liye
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Fetcher Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: node fetcher.js
