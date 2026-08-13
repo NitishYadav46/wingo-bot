@@ -1,0 +1,7 @@
+{
+  "name": "wingo-auto-fetcher",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "@supabase/supabase-js": "^2.38.4"
+  }
+}
