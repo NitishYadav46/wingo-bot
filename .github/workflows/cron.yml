@@ -2,8 +2,8 @@ name: Wingo 5-Min Auto Fetcher
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # Har 5 minute me bot chalega
-  workflow_dispatch: # Manual test button ke liye
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   fetch-data:
@@ -18,7 +18,7 @@ jobs:
           node-version: '18'
 
       - name: Install Dependencies
-        run: npm install axios @supabase/supabase-js puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+        run: npm install axios @supabase/supabase-js
 
       - name: Run Fetcher Script
         env:
