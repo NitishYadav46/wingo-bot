@@ -1,4 +1,6 @@
-const axios = require('axios');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const { createClient } = require('@supabase/supabase-js');
 
 // Supabase Connection
@@ -8,21 +10,32 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
 
-// 🚀 Maine capital 'A' ko small 'a' kar diya hai
-const SCRAPER_API_KEY = "a555d17058e1ff05c406d9751e8b7b41"; 
-
 async function fetchAndSaveData() {
+    console.log("🚀 Starting Advanced Stealth Browser...");
+    
+    // GitHub ke andar ek invisible Chrome Browser start karna
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+
     try {
+        const page = await browser.newPage();
+        
         const timestamp = new Date().getTime();
-        const targetUrl = encodeURIComponent(`${API_URL}?ts=${timestamp}`);
-        
-        const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&keep_headers=true`;
+        const finalUrl = `${API_URL}?ts=${timestamp}`;
+        console.log(`🔗 Visiting URL: ${finalUrl}`);
 
-        console.log("ScraperAPI ke through request bhej rahe hain...");
-
-        const response = await axios.get(proxyUrl);
+        // Website par jana aur data aane ka wait karna (Bilkul human ki tarah)
+        await page.goto(finalUrl, { waitUntil: 'networkidle2', timeout: 30000 });
         
-        const records = response.data.data?.list || [];
+        // Browser ki screen se JSON data nikalna
+        const rawData = await page.evaluate(() => {
+            return document.body.innerText; 
+        });
+
+        const parsedData = JSON.parse(rawData);
+        const records = parsedData.data?.list || [];
 
         console.log(`📡 API Hit Success! Found ${records.length} records. Saving...`);
 
@@ -32,8 +45,10 @@ async function fetchAndSaveData() {
             let color = item.color;
             let premium = parseInt(item.premium);
             
+            // Logic: 0-4 = small, 5-9 = big
             let result_type = number >= 5 ? 'big' : 'small';
 
+            // Supabase me save karna
             const { error } = await supabase
                 .from('daman_history')
                 .upsert(
@@ -47,11 +62,10 @@ async function fetchAndSaveData() {
         }
         console.log("✅ Rounds Successfully Saved to Supabase!");
     } catch (error) {
-        console.error("❌ API Fetch Error:", error.message);
-        // 🚀 Yeh naya tracker humein exact reason batayega!
-        if (error.response) {
-            console.error("🔍 Asli Error Ka Kaaran:", error.response.data);
-        }
+        console.error("❌ Stealth Bot Error:", error.message);
+    } finally {
+        await browser.close();
+        console.log("🛑 Browser Closed.");
     }
 }
 
