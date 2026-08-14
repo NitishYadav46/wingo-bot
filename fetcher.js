@@ -1,33 +1,28 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
-// GitHub Secrets se Supabase details
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Aapki Daman Game ki API
 const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
 
 async function fetchAndSaveData() {
     try {
         const timestamp = new Date().getTime();
-        // 🚀 Target URL banaya
         const targetUrl = encodeURIComponent(`${API_URL}?ts=${timestamp}`);
         
-        // 🚀 JUGAD: AllOrigins Free Proxy (Bicholiya) use kar rahe hain
-        const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
+        // 🚀 NAYA JUGAAD: CORSProxy.io (Yeh strict blocks todta hai)
+        const proxyUrl = `https://corsproxy.io/?${targetUrl}`;
 
-        // Proxy ke through request bhejna
         const response = await axios.get(proxyUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-            },
-            timeout: 10000 // 10 second wait karega
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'application/json'
+            }
         });
         
-        // Data nikalna
-        const records = response.data.data.list || [];
+        const records = response.data.data?.list || [];
 
         console.log(`📡 API Hit Success! Found ${records.length} records. Saving...`);
 
@@ -37,10 +32,8 @@ async function fetchAndSaveData() {
             let color = item.color;
             let premium = parseInt(item.premium);
             
-            // Logic: 0-4 = small, 5-9 = big
             let result_type = number >= 5 ? 'big' : 'small';
 
-            // Supabase me save karna
             const { error } = await supabase
                 .from('daman_history')
                 .upsert(
@@ -48,11 +41,9 @@ async function fetchAndSaveData() {
                     { onConflict: 'period', ignoreDuplicates: true }
                 );
 
-            if (error) {
-                console.error(`❌ Error saving period ${period}:`, error.message);
-            }
+            if (error) console.error(`❌ Error saving ${period}:`, error.message);
         }
-        console.log("✅ Rounds Successfully Saved to Supabase!");
+        console.log("✅ Rounds Successfully Saved!");
     } catch (error) {
         console.error("❌ API Fetch Error:", error.message);
     }
