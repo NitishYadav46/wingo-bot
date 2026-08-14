@@ -1,13 +1,13 @@
 {
   "name": "wingo-bot",
   "version": "1.0.0",
-  "description": "Daman API scraper with cloudscraper",
+  "description": "Daman API scraper",
   "main": "api/scrape.js",
   "scripts": {
     "start": "node api/scrape.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
-    "cloudscraper": "^4.6.0"
+    "axios": "^1.6.0"
   }
 }
