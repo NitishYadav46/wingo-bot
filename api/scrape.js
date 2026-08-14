@@ -1,12 +1,14 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase Connection
-const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co";
+// 1. SUPABASE DATABASE SETUP (Direct Keys Set)
+const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co"; 
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb3FocXJ1em9jbWJoaGpranR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDg2NjYsImV4cCI6MjEwMjIyNDY2Nn0.MU1awKKiUp3x0laQvazM_nMuj96vyXmw2uG7qEZIR7M";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+// Aapki active ScraperAPI Key
+const SCRAPER_API_KEY = "a555d17058e1ff05c406d9751e8b7b41"; 
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -14,38 +16,44 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log("🚀 Fetching records with Fake Mobile Headers...");
+        console.log("🚀 Fetching Latest 5 Pages (50 Records) using ScraperAPI...");
+        
         const timestamp = new Date().getTime();
         let allRecords = [];
         const fetchPromises = [];
-
-        // Fake Browser/Mobile Headers banaye gaye hain Cloudflare ko bypass karne ke liye
-        const customHeaders = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://draw.ar-lottery01.com/',
-            'Origin': 'https://draw.ar-lottery01.com'
-        };
-
+        
+        // ⚡ Limit set to 5 Pages (50 latest rounds)
         for (let page = 1; page <= 5; page++) {
-            const targetUrl = `${API_URL}?pageNo=${page}&ts=${timestamp}`;
-            const request = axios.get(targetUrl, { headers: customHeaders })
+            // Target URL ko encode karna zaroori hai ScraperAPI ke liye
+            const targetUrl = encodeURIComponent(`${API_URL}?pageNo=${page}&ts=${timestamp}`);
+            const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&keep_headers=true`;
+            
+            // ScraperAPI ke through request bhej rahe hain
+            const request = axios.get(proxyUrl)
                 .then(response => response.data.data?.list || [])
                 .catch(err => {
                     console.error(`❌ Page ${page} Fetch Error:`, err.message);
-                    return [];
+                    return []; 
                 });
+                
             fetchPromises.push(request);
         }
 
+        // 🚀 5 pages ko ek hi sath fetch karna Vercel Timeout bachane ke liye
         const pagesData = await Promise.all(fetchPromises);
-        pagesData.forEach(pageRecords => { allRecords = allRecords.concat(pageRecords); });
+        
+        // Data ko ek single array mein joddna
+        pagesData.forEach(pageRecords => {
+            allRecords = allRecords.concat(pageRecords);
+        });
+
+        console.log(`📡 API Hit Success! Total ${allRecords.length} records mile. Saving...`);
 
         if (allRecords.length === 0) {
-            return res.status(200).json({ success: false, message: "Fake headers fail ho gaye. Cloudflare bohot strict hai, wapas ScraperAPI proxy lagana padega!" });
+            return res.status(200).json({ success: false, message: "ScraperAPI se bhi data nahi aaya. API key ki limit check karein." });
         }
 
+        // Supabase ke hisaab se data format karna
         const formattedData = allRecords.map(item => {
             let number = parseInt(item.number);
             return {
@@ -53,23 +61,32 @@ export default async function handler(req, res) {
                 number: number,
                 color: item.color,
                 premium: parseInt(item.premium),
-                result_type: number >= 5 ? 'big' : 'small'
+                result_type: number >= 5 ? 'big' : 'small' 
             };
         });
 
+        // ⚡ Ek hi baar mein Bulk Upsert
         const { error } = await supabase
             .from('daman_history')
             .upsert(formattedData, { onConflict: 'period', ignoreDuplicates: true });
 
-        if (error) throw error;
+        if (error) {
+            throw error;
+        }
 
-        return res.status(200).json({
-            success: true,
-            message: "Data successfully scraped (Bypassed with Headers) and saved!",
+        console.log(`✅ ${formattedData.length} Rounds Successfully Saved to Supabase!`);
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: "Data successfully scraped (via ScraperAPI) and saved!", 
             totalFetched: allRecords.length
         });
 
     } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+        console.error("❌ Main Error:", error.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
     }
 }
