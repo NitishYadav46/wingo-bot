@@ -17,8 +17,9 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Dependencies
-        run: npm install
+      
+- name: Install Dependencies
+  run: npm install axios @supabase/supabase-js puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: Run Fetcher Script
         env:
