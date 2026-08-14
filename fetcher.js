@@ -6,19 +6,28 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Aapki Daman Game ki API
+// Aapki Daman Game ki API ka link
 const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
 
 async function fetchAndSaveData() {
     try {
         const timestamp = new Date().getTime();
         
-        // YAHAN CHROME BROWSER WALI FAKE IDENTITY (HEADERS) ADD KI HAI
+        // 🚀 BROWSER BYPASS HEADERS (Yeh website ko bewakoof banayega)
         const response = await axios.get(`${API_URL}?ts=${timestamp}`, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
                 'Accept': 'application/json, text/plain, */*',
-                'Referer': 'https://draw.ar-lottery01.com/'
+                'Accept-Language': 'en-US,en;q=0.9,hi-IN;q=0.8,hi;q=0.7',
+                'Origin': 'https://draw.ar-lottery01.com',
+                'Referer': 'https://draw.ar-lottery01.com/',
+                'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Connection': 'keep-alive'
             }
         });
         
@@ -48,9 +57,12 @@ async function fetchAndSaveData() {
                 console.error(`❌ Error saving period ${period}:`, error.message);
             }
         }
-        console.log("✅ Rounds Successfully Saved to Supabase!");
+        console.log("✅ 10 Rounds Successfully Saved to Supabase!");
     } catch (error) {
         console.error("❌ API Fetch Error:", error.message);
+        if (error.response) {
+            console.error("Website Status:", error.response.status);
+        }
     }
 }
 
