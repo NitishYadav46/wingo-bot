@@ -1,26 +1,28 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
+// Supabase Connection
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
 
+// 🚀 Aapki ScraperAPI Key (Maine set kar di hai)
+const SCRAPER_API_KEY = "A555d17058e1ff05c406d9751e8b7b41";
+
 async function fetchAndSaveData() {
     try {
         const timestamp = new Date().getTime();
         const targetUrl = encodeURIComponent(`${API_URL}?ts=${timestamp}`);
         
-        // 🚀 NAYA JUGAAD: CORSProxy.io (Yeh strict blocks todta hai)
-        const proxyUrl = `https://corsproxy.io/?${targetUrl}`;
+        // 🚀 ScraperAPI ka Professional Bypass Link
+        const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&keep_headers=true`;
 
-        const response = await axios.get(proxyUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'application/json'
-            }
-        });
+        console.log("ScraperAPI ke through request bhej rahe hain...");
+
+        // Request bhejna
+        const response = await axios.get(proxyUrl);
         
         const records = response.data.data?.list || [];
 
@@ -32,8 +34,10 @@ async function fetchAndSaveData() {
             let color = item.color;
             let premium = parseInt(item.premium);
             
+            // Logic: 0-4 = small, 5-9 = big
             let result_type = number >= 5 ? 'big' : 'small';
 
+            // Supabase me save karna
             const { error } = await supabase
                 .from('daman_history')
                 .upsert(
@@ -41,9 +45,11 @@ async function fetchAndSaveData() {
                     { onConflict: 'period', ignoreDuplicates: true }
                 );
 
-            if (error) console.error(`❌ Error saving ${period}:`, error.message);
+            if (error) {
+                console.error(`❌ Error saving period ${period}:`, error.message);
+            }
         }
-        console.log("✅ Rounds Successfully Saved!");
+        console.log("✅ Rounds Successfully Saved to Supabase!");
     } catch (error) {
         console.error("❌ API Fetch Error:", error.message);
     }
