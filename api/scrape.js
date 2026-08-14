@@ -1,58 +1,88 @@
 const cloudscraper = require('cloudscraper');
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase Setup
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+// 1. SUPABASE DATABASE SETUP (Direct Keys Set)
+const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co"; 
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb3FocXJ1em9jbWJoaGpranR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDg2NjYsImV4cCI6MjEwMjIyNDY2Nn0.MU1awKKiUp3x0laQvazM_nMuj96vyXmw2uG7qEZIR7M";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Vercel Serverless API Handler
+const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+
 export default async function handler(req, res) {
-    // Sirf GET requests allow karenge (cron-job.org se aayengi)
     if (req.method !== 'GET') {
         return res.status(405).json({ error: "Sirf GET request allowed hai" });
     }
 
     try {
-        console.log("🚀 Data Fetching Start ho rahi hai...");
+        console.log("🚀 Fetching Latest 5 Pages (50 Records) using Cloudscraper...");
+        
+        const timestamp = new Date().getTime();
+        let allRecords = [];
+        const fetchPromises = [];
+        
+        // ⚡ Limit set to 5 Pages (50 latest rounds)
+        for (let page = 1; page <= 5; page++) {
+            const targetUrl = `${API_URL}?pageNo=${page}&ts=${timestamp}`;
+            
+            // Cloudscraper GET request bhej raha hai
+            const request = cloudscraper.get(targetUrl)
+                .then(responseString => {
+                    const responseData = JSON.parse(responseString);
+                    return responseData.data?.list || [];
+                })
+                .catch(err => {
+                    console.error(`❌ Page ${page} Fetch Error:`, err.message);
+                    return []; 
+                });
+                
+            fetchPromises.push(request);
+        }
 
-        // ⚠️ YAHAN APNA DAMAN API KA ASLI LINK DALIYE
-        const apiUrl = "https://daman-game-api-link-here.com/api/getRecords?limit=50"; 
+        // 🚀 5 pages ko ek hi sath fast-fetch karna (Vercel Timeout bachane ke liye)
+        const pagesData = await Promise.all(fetchPromises);
+        
+        // Data ko ek single array mein joddna
+        pagesData.forEach(pageRecords => {
+            allRecords = allRecords.concat(pageRecords);
+        });
 
-        // Cloudscraper se request bhej rahe hain (Cloudflare Bypass ke liye)
-        const responseString = await cloudscraper.get(apiUrl);
-        const data = JSON.parse(responseString); // String ko JSON mein convert kiya
+        console.log(`📡 API Hit Success! Total ${allRecords.length} records mile. Saving...`);
 
-        // Yahan aap apne hisaab se data ko format kar sakte hain
-        // Misaal ke taur par:
-        const formattedData = data.data.list.map(item => ({
-            period_id: String(item.issueNumber),
-            number: item.number,
-            // ... baaki aapke variables
-        }));
+        if (allRecords.length === 0) {
+            return res.status(200).json({ success: true, message: "Koi naya data nahi mila ya Cloudflare ne block kiya." });
+        }
 
-        // Supabase mein Data Save karna
-        const { data: dbData, error } = await supabase
-            .from('daman_records') // Apne table ka naam yahan likhein
-            .insert(formattedData);
+        // Supabase ke hisaab se data format karna
+        const formattedData = allRecords.map(item => {
+            let number = parseInt(item.number);
+            return {
+                period: item.issueNumber,
+                number: number,
+                color: item.color,
+                premium: parseInt(item.premium),
+                result_type: number >= 5 ? 'big' : 'small' 
+            };
+        });
+
+        // ⚡ Ek hi baar mein Bulk Upsert
+        const { error } = await supabase
+            .from('daman_history') // Dhyan rahe aapka table name yahi ho
+            .upsert(formattedData, { onConflict: 'period', ignoreDuplicates: true });
 
         if (error) {
             throw error;
         }
 
-        console.log("✅ Data Supabase mein save ho gaya!");
+        console.log(`✅ ${formattedData.length} Rounds Successfully Saved to Supabase!`);
         
-        // Cron-job ko 'Success' ka message bhejna
         return res.status(200).json({ 
             success: true, 
-            message: "Data successfully scraped and saved!", 
-            recordsSaved: formattedData.length 
+            message: "Data successfully scraped (Permanent Free) and saved!", 
+            totalFetched: allRecords.length
         });
 
     } catch (error) {
-        console.error("❌ Error aagaya:", error.message);
-        
-        // Cron-job ko 'Failed' ka message bhejna
+        console.error("❌ Main Error:", error.message);
         return res.status(500).json({ 
             success: false, 
             error: error.message 
