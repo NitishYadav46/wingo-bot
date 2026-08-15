@@ -6,35 +6,34 @@ const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb3FocXJ1em9jbWJoaGpranR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDg2NjYsImV4cCI6MjEwMjIyNDY2Nn0.MU1awKKiUp3x0laQvazM_nMuj96vyXmw2uG7qEZIR7M";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// 2. SCRAPER API SETUP - Yahan apni active Scraper API Key daalein
+const SCRAPER_API_KEY = "YOUR_SCRAPER_API_KEY_HERE"; 
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: "Sirf GET request allowed hai" });
     }
 
     try {
-        console.log("🚀 Fetching Latest 1 Page Directly with Headers...");
+        console.log("🚀 Fetching Latest 1 Page via ScraperAPI...");
         
         const timestamp = new Date().getTime();
-        const targetUrl = `https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1&ts=${timestamp}`;
+        const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
         
-        // ⚡ Yahan humne Headers add kiye hain taaki real browser jaisa lage
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://ar-lottery01.com/',
-                'Connection': 'keep-alive'
-            }
-        });
+        // Target URL ko encode karna zaroori hai ScraperAPI ke liye
+        const targetUrl = encodeURIComponent(`${API_URL}?pageNo=1&ts=${timestamp}`);
         
+        // ScraperAPI ka Proxy URL
+        const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&keep_headers=true`;
+        
+        const response = await axios.get(proxyUrl);
         const records = response.data.data?.list || [];
 
         if (records.length === 0) {
-            return res.status(200).json({ success: false, message: "API se data nahi aaya." });
+            return res.status(200).json({ success: false, message: "ScraperAPI se data nahi aaya." });
         }
 
-        console.log(`📡 Direct API Hit Success! ${records.length} records mile. Saving...`);
+        console.log(`📡 ScraperAPI Hit Success! ${records.length} records mile. Saving...`);
 
         const formattedData = records.map(item => {
             let number = parseInt(item.number);
@@ -55,7 +54,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ 
             success: true, 
-            message: "Successfully scraped directly and saved!", 
+            message: "Successfully scraped via ScraperAPI and saved!", 
             totalFetched: records.length
         });
 
