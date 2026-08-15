@@ -12,24 +12,30 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log("🚀 Fetching Latest 1 Page (10 Records) Directly...");
+        console.log("🚀 Fetching Latest 1 Page Directly with Headers...");
         
         const timestamp = new Date().getTime();
-        
-        // ⚡ Direct fetch URL (No ScraperAPI)
         const targetUrl = `https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1&ts=${timestamp}`;
         
-        // Direct request mar rahe hain
-        const response = await axios.get(targetUrl);
+        // ⚡ Yahan humne Headers add kiye hain taaki real browser jaisa lage
+        const response = await axios.get(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://ar-lottery01.com/',
+                'Connection': 'keep-alive'
+            }
+        });
+        
         const records = response.data.data?.list || [];
 
         if (records.length === 0) {
-            return res.status(200).json({ success: false, message: "API se data nahi aaya. Shayad block ho gaya." });
+            return res.status(200).json({ success: false, message: "API se data nahi aaya." });
         }
 
         console.log(`📡 Direct API Hit Success! ${records.length} records mile. Saving...`);
 
-        // Data format karna
         const formattedData = records.map(item => {
             let number = parseInt(item.number);
             return {
@@ -41,20 +47,15 @@ export default async function handler(req, res) {
             };
         });
 
-        // ⚡ Supabase mein upsert karna (Naye add honge, purane ignore honge)
         const { error } = await supabase
             .from('daman_history')
             .upsert(formattedData, { onConflict: 'period', ignoreDuplicates: true });
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
-        console.log(`✅ ${formattedData.length} Rounds Successfully Saved to Supabase!`);
-        
         return res.status(200).json({ 
             success: true, 
-            message: "1 Page (10 rounds) successfully scraped directly and saved!", 
+            message: "Successfully scraped directly and saved!", 
             totalFetched: records.length
         });
 
