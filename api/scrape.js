@@ -7,7 +7,7 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 2. SCRAPER API SETUP - Yahan apni active Scraper API Key daalein
-const SCRAPER_API_KEY = "YOUR_SCRAPER_API_KEY_HERE"; 
+const SCRAPER_API_KEY = "0d7be707cf2af4bd2adfbcaaf1f74608"; 
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
