@@ -6,9 +6,11 @@ const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb3FocXJ1em9jbWJoaGpranR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDg2NjYsImV4cCI6MjEwMjIyNDY2Nn0.MU1awKKiUp3x0laQvazM_nMuj96vyXmw2uG7qEZIR7M";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+
 // Aapki active ScraperAPI Key
-const SCRAPER_API_KEY = "a555d17058e1ff05c406d9751e8b7b41"; 
+ // Purana ScraperAPI code hata kar yeh direct fetch daal dein:
+const targetUrl = `https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1&ts=${timestamp}`;
+const response = await axios.get(targetUrl);
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
