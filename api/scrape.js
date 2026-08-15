@@ -6,34 +6,28 @@ const supabaseUrl = "https://mjoqhqruzocmbhhjkjtv.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb3FocXJ1em9jbWJoaGpranR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NDg2NjYsImV4cCI6MjEwMjIyNDY2Nn0.MU1awKKiUp3x0laQvazM_nMuj96vyXmw2uG7qEZIR7M";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-
-// Aapki active ScraperAPI Key
- // Purana ScraperAPI code hata kar yeh direct fetch daal dein:
-const targetUrl = `https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1&ts=${timestamp}`;
-const response = await axios.get(targetUrl);
-
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: "Sirf GET request allowed hai" });
     }
 
     try {
-        console.log("🚀 Fetching Latest 1 Page (10 Records) using ScraperAPI...");
+        console.log("🚀 Fetching Latest 1 Page (10 Records) Directly...");
         
         const timestamp = new Date().getTime();
         
-        // ⚡ Sirf Page 1 (Latest 10 rounds) fetch kar rahe hain
-        const targetUrl = encodeURIComponent(`${API_URL}?pageNo=1&ts=${timestamp}`);
-        const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${targetUrl}&keep_headers=true`;
+        // ⚡ Direct fetch URL (No ScraperAPI)
+        const targetUrl = `https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageNo=1&ts=${timestamp}`;
         
-        const response = await axios.get(proxyUrl);
+        // Direct request mar rahe hain
+        const response = await axios.get(targetUrl);
         const records = response.data.data?.list || [];
 
         if (records.length === 0) {
-            return res.status(200).json({ success: false, message: "ScraperAPI se data nahi aaya." });
+            return res.status(200).json({ success: false, message: "API se data nahi aaya. Shayad block ho gaya." });
         }
 
-        console.log(`📡 API Hit Success! ${records.length} records mile. Saving...`);
+        console.log(`📡 Direct API Hit Success! ${records.length} records mile. Saving...`);
 
         // Data format karna
         const formattedData = records.map(item => {
@@ -60,7 +54,7 @@ export default async function handler(req, res) {
         
         return res.status(200).json({ 
             success: true, 
-            message: "1 Page (10 rounds) successfully scraped and saved!", 
+            message: "1 Page (10 rounds) successfully scraped directly and saved!", 
             totalFetched: records.length
         });
 
